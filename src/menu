@@ -1,0 +1,121 @@
+#!/bin/bash
+# Script by ais sia
+# Upload by Aryo Brokolly
+clear
+
+# ================== WARNA ==================
+W='\e[1;37m'
+R='\e[31;1m'
+G='\e[32;1m'
+Y='\e[33;1m'
+DB='\e[34;1m'
+P='\e[35;1m'
+LB='\e[36;1m'
+
+# ================== HEADER =================
+echo -e "$DB **************************************************"
+echo -e " **                                              **"
+echo -e "$DB **$R        SCRIPT MODEM HUAWEI / HILINK          $DB**"
+echo -e " **                                              **"
+echo -e "$DB **************************************************"
+echo -e "$DB **$Y           PILIH OPSI YANG TERSEDIA           $DB**"
+echo -e "$DB **************************************************"
+echo -e "$DB **$G DAFTAR :                                     $DB**"
+echo -e "$DB **$G [\e[36m•1\e[0m$G] Ganti IP Address                        $DB**"
+echo -e "$DB **$G [\e[36m•2\e[0m$G] Cek Device Information                  $DB**"
+echo -e "$DB **$G [\e[36m•3\e[0m$G] Lock Cell ID                            $DB**"
+echo -e "$DB **$G [\e[36m•4\e[0m$G] Unlock Cell ID                          $DB**"
+echo -e "$DB **$G [\e[36m•5\e[0m$G] Restart / Reboot                        $DB**"
+echo -e "$DB **$G [\e[36m•6\e[0m$G] Update Script                           $DB**"
+echo -e "$DB **************************************************"
+echo -e "$W"
+echo -e " Press x atau [ Ctrl+C ] untuk keluar"
+echo -e ""
+
+read -p " Select menu : " opt
+echo -e ""
+
+# ================== PILIH MODEM ==================
+echo " Pilih modem:"
+echo " 1) Modem 1"
+echo " 2) Modem 2"
+read -p " Pilih [1/2] : " pilih
+
+case $pilih in
+  1) modem="m1" ;;
+  2) modem="m2" ;;
+  *)
+    echo -e "${R}Pilihan modem salah!${W}"
+    sleep 2
+    /usr/bin/m
+  ;;
+esac
+
+# ================== MENU ==================
+case $opt in
+1)
+  clear
+  echo -e "Proses ubah IP, mohon ditunggu..."
+  sleep 2
+  hilink iphunter $modem
+  read -n 1 -s -r -p "Press any key to back menu"
+  /usr/bin/m
+;;
+
+2)
+  clear
+  echo -e "Proses cek info modem..."
+  sleep 2
+  hilink info $modem
+  read -n 1 -s -r -p "Press any key to back menu"
+  /usr/bin/m
+;;
+
+3)
+  clear
+  echo -e "Proses lock cell ID..."
+  sleep 2
+  hilink lock $modem
+  read -n 1 -s -r -p "Press any key to back menu"
+  /usr/bin/m
+;;
+
+4)
+  clear
+  echo -e "Proses unlock cell ID..."
+  sleep 2
+  hilink unlock $modem
+  read -n 1 -s -r -p "Press any key to back menu"
+  /usr/bin/m
+;;
+
+5)
+  clear
+  echo -e "Proses reboot modem..."
+  sleep 2
+  hilink reboot $modem
+  echo -e "Done..."
+  read -n 1 -s -r -p "Press any key to back menu"
+  /usr/bin/m
+;;
+
+6)
+  clear
+  echo -e "Proses update script..."
+  sleep 2
+  updatehilink
+  echo -e "Done..."
+  read -n 1 -s -r -p "Press any key to back menu"
+  /usr/bin/m
+;;
+
+x)
+  exit
+;;
+
+*)
+  echo -e "${R}Pilihan menu salah!${W}"
+  sleep 2
+  /usr/bin/m
+;;
+esac
