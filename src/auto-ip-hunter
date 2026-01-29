@@ -1,7 +1,4 @@
 #!/bin/bash
-# AUTO CLASH CHECK → IPHUNTER
-# 2x FAIL + COOLDOWN + LOG MAX 10 BARIS (RESET)
-# By ais sia
 
 CLASH_API="127.0.0.1:9090"
 CLASH_SECRET="xidz"
