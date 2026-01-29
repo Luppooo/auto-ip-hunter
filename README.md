@@ -2,7 +2,9 @@
 
 ## 🚀 AUTO INSTALL
 ```
-git clone <URL_REPO> && cd auto-ip-hunter && yes | sh install.sh install
+git clone https://github.com/Luppooo/auto-ip-hunter.git \
+&& cd auto-ip-hunter \
+&& yes | sh install.sh install
 ```
 ## 🗑️ Uninstall
 ```
