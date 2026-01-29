@@ -1,6 +1,4 @@
 #!/bin/bash
-#IP Hunter by ais sia
-#Upload by Aryo Brokolly
 clear
 # ===== MULTI MODEM CONFIG =====
 set_modem(){
