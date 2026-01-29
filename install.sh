@@ -1,82 +1,162 @@
 #!/bin/sh
-# Auto IP Hunter Installer
+# Auto IP Hunter Installer / Uninstaller (Interactive)
 # For OpenWRT
 # Author: ais sia
 
 set -e
 
-echo "======================================"
-echo " Auto IP Hunter - Installer"
-echo "======================================"
-
-# ================== CHECK ROOT ==================
-if [ "$(id -u)" != "0" ]; then
-  echo "[ERROR] Jalankan installer sebagai root"
-  exit 1
-fi
-
-# ================== PATH ==================
 BIN_DIR="/usr/bin"
 INITD_DIR="/etc/init.d"
+
+AUTO_BIN="$BIN_DIR/auto-ip-hunter"
+HILINK_BIN="$BIN_DIR/hilink"
+MENU_BIN="$BIN_DIR/m"
+BALONG_BIN="$BIN_DIR/balong-nvtool"
+INITD_BIN="$INITD_DIR/auto-ip-hunter"
+
 REPO_DIR="$(pwd)"
 
-# ================== INSTALL BINARIES ==================
-echo "[*] Installing binaries..."
+# ================== UTIL ==================
+banner() {
+  clear
+  echo "======================================"
+  echo "        AUTO IP HUNTER INSTALLER       "
+  echo "======================================"
+}
 
-cp "$REPO_DIR/auto-ip-hunter" "$BIN_DIR/auto-ip-hunter"
-cp "$REPO_DIR/hilink" "$BIN_DIR/hilink"
-cp "$REPO_DIR/menu-hilink" "$BIN_DIR/m"
-
-chmod +x \
-  "$BIN_DIR/auto-ip-hunter" \
-  "$BIN_DIR/hilink" \
-  "$BIN_DIR/m"
-
-# ================== INSTALL BALONG NVTOOL ==================
-if [ -f "$REPO_DIR/bin/balong-nvtool" ]; then
-  echo "[*] Installing balong-nvtool..."
-  cp "$REPO_DIR/bin/balong-nvtool" "$BIN_DIR/balong-nvtool"
-  chmod +x "$BIN_DIR/balong-nvtool"
-else
-  echo "[WARN] bin/balong-nvtool tidak ditemukan (lock/unlock tidak akan berfungsi)"
-fi
-
-# ================== INSTALL INIT.D SERVICE ==================
-if [ -f "$REPO_DIR/init.d/auto-ip-hunter" ]; then
-  echo "[*] Installing init.d service..."
-  cp "$REPO_DIR/init.d/auto-ip-hunter" "$INITD_DIR/auto-ip-hunter"
-  chmod +x "$INITD_DIR/auto-ip-hunter"
-else
-  echo "[WARN] init.d/auto-ip-hunter tidak ditemukan"
-fi
-
-# ================== DEPENDENCIES ==================
-echo "[*] Checking dependencies..."
-
-opkg update
-
-for pkg in curl jq adb screen; do
-  if ! opkg list-installed | grep -q "^$pkg "; then
-    echo "  - Installing $pkg"
-    opkg install "$pkg"
-  else
-    echo "  - $pkg already installed"
+require_root() {
+  if [ "$(id -u)" != "0" ]; then
+    echo "[ERROR] Jalankan sebagai root"
+    exit 1
   fi
-done
+}
 
-# ================== ENABLE SERVICE ==================
-if [ -f "$INITD_DIR/auto-ip-hunter" ]; then
-  echo "[*] Enabling auto-ip-hunter service..."
-  "$INITD_DIR/auto-ip-hunter" enable
-  "$INITD_DIR/auto-ip-hunter" restart
-fi
+confirm() {
+  while true; do
+    printf "%s [y/n]: " "$1"
+    read yn
+    case "$yn" in
+      y|Y) return 0 ;;
+      n|N) return 1 ;;
+      *) echo "Masukkan y atau n" ;;
+    esac
+  done
+}
 
-echo "======================================"
-echo " ✅ Installation complete"
-echo "======================================"
-echo ""
-echo " Menu  : ketik 'm'"
-echo " Service status :"
-echo "   ps | grep auto-ip-hunter"
-echo "   logread | tail"
-echo ""
+pause() {
+  echo ""
+  read -p "Tekan ENTER untuk kembali ke menu..."
+}
+
+# ================== UNINSTALL ==================
+do_uninstall() {
+  banner
+  echo "[*] Uninstall Auto IP Hunter"
+  echo ""
+
+  if ! confirm "Yakin ingin UNINSTALL?"; then
+    echo "Uninstall dibatalkan."
+    sleep 1
+    return
+  fi
+
+  echo ""
+  echo " - Stopping service"
+  [ -f "$INITD_BIN" ] && "$INITD_BIN" stop || true
+  [ -f "$INITD_BIN" ] && "$INITD_BIN" disable || true
+
+  echo " - Removing files"
+  rm -f "$AUTO_BIN" "$HILINK_BIN" "$MENU_BIN" "$BALONG_BIN"
+  rm -f "$INITD_BIN"
+
+  echo " - Cleaning temp files"
+  rm -rf /tmp/clash-iphunter /tmp/clash-iphunter.log
+
+  echo ""
+  echo "✅ Uninstall selesai"
+  pause
+}
+
+# ================== INSTALL ==================
+do_install() {
+  banner
+  echo "[*] Install Auto IP Hunter"
+  echo ""
+
+  if ! confirm "Lanjutkan INSTALL?"; then
+    echo "Install dibatalkan."
+    sleep 1
+    return
+  fi
+
+  echo ""
+  echo " - Installing binaries"
+  cp src/auto-ip-hunter "$AUTO_BIN"
+  cp src/hilink "$HILINK_BIN"
+  cp src/menu "$MENU_BIN"
+  chmod +x "$AUTO_BIN" "$HILINK_BIN" "$MENU_BIN"
+
+  if [ -f "$REPO_DIR/bin/balong-nvtool" ]; then
+    cp "$REPO_DIR/bin/balong-nvtool" "$BALONG_BIN"
+    chmod +x "$BALONG_BIN"
+  else
+    echo " [WARN] balong-nvtool tidak ditemukan"
+  fi
+
+  if [ -f "$REPO_DIR/init.d/auto-ip-hunter" ]; then
+    cp "$REPO_DIR/init.d/auto-ip-hunter" "$INITD_BIN"
+    chmod +x "$INITD_BIN"
+  fi
+
+  echo " - Checking dependencies"
+  opkg update
+
+  for pkg in curl jq adb screen; do
+    if ! opkg list-installed | grep -q "^$pkg "; then
+      echo "   Installing $pkg"
+      opkg install "$pkg"
+    fi
+  done
+
+  if [ -f "$INITD_BIN" ]; then
+    echo " - Enabling service"
+    "$INITD_BIN" enable
+    "$INITD_BIN" restart
+  fi
+
+  echo ""
+  echo "✅ Install selesai"
+  echo " Menu : ketik 'm'"
+  pause
+}
+
+# ================== MENU ==================
+main_menu() {
+  while true; do
+    banner
+    echo " 1) Install"
+    echo " 2) Uninstall"
+    echo " 3) Exit"
+    echo ""
+    read -p "Pilih menu [1-3]: " opt
+
+    case "$opt" in
+      1) do_install ;;
+      2) do_uninstall ;;
+      3) clear; exit 0 ;;
+      *) echo "Pilihan tidak valid"; sleep 1 ;;
+    esac
+  done
+}
+
+# ================== ENTRY ==================
+require_root
+
+case "$1" in
+  uninstall)
+    do_uninstall
+  ;;
+  *)
+    main_menu
+  ;;
+esac
