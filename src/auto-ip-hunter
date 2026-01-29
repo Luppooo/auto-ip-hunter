@@ -1,0 +1,88 @@
+#!/bin/bash
+# AUTO CLASH CHECK → IPHUNTER
+# 2x FAIL + COOLDOWN + LOG MAX 10 BARIS (RESET)
+# By ais sia
+
+CLASH_API="127.0.0.1:9090"
+CLASH_SECRET="xidz"
+
+FAIL_LIMIT=3
+DELAY_LOOP=15
+
+COOLDOWN_M1=28
+COOLDOWN_M2=27
+
+STATE_DIR="/tmp/clash-iphunter"
+LOG_FILE="/tmp/clash-iphunter.log"
+LOG_MAX_LINES=5
+
+mkdir -p "$STATE_DIR"
+
+log(){
+  # buat file log kalau belum ada
+  [ ! -f "$LOG_FILE" ] && : > "$LOG_FILE"
+
+  LINE_COUNT=$(wc -l < "$LOG_FILE")
+
+  # kalau sudah 10 baris → reset log
+  if [ "$LINE_COUNT" -ge "$LOG_MAX_LINES" ]; then
+    : > "$LOG_FILE"
+  fi
+
+  echo "$(date '+%Y-%m-%d %H:%M:%S') [$1] $2" >> "$LOG_FILE"
+}
+
+cek_clash(){
+  PROVIDER=$1
+  IFACE=$2
+  curl -s -H "Authorization: Bearer $CLASH_SECRET" \
+    http://$CLASH_API/providers/proxies \
+  | jq -e ".providers.\"$PROVIDER\".proxies[]
+           | select(.alive == true and .interface == \"$IFACE\")" >/dev/null
+}
+
+handle_modem(){
+  MODEM=$1
+  PROVIDER=$2
+  IFACE=$3
+  COOLDOWN=$4
+
+  FAIL_FILE="$STATE_DIR/$MODEM.fail"
+  TIME_FILE="$STATE_DIR/$MODEM.time"
+
+  NOW=$(date +%s)
+
+  if [ -f "$TIME_FILE" ]; then
+    LAST=$(cat "$TIME_FILE")
+    LEFT=$((COOLDOWN - (NOW - LAST)))
+    if [ "$LEFT" -gt 0 ]; then
+      log "$MODEM" "COOLDOWN ACTIVE (${LEFT}s left)"
+      return
+    fi
+  fi
+
+  if cek_clash "$PROVIDER" "$IFACE"; then
+    log "$MODEM" "CLASH NORMAL"
+    rm -f "$FAIL_FILE"
+    return
+  fi
+
+  FAIL_COUNT=$(cat "$FAIL_FILE" 2>/dev/null || echo 0)
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  echo "$FAIL_COUNT" > "$FAIL_FILE"
+
+  log "$MODEM" "CLASH FAIL ($FAIL_COUNT/$FAIL_LIMIT)"
+
+  if [ "$FAIL_COUNT" -ge "$FAIL_LIMIT" ]; then
+    log "$MODEM" "FAIL $FAIL_LIMIT x → IPHUNTER (cooldown ${COOLDOWN}s)"
+    hilink iphunter "$MODEM"
+    echo "$NOW" > "$TIME_FILE"
+    rm -f "$FAIL_FILE"
+  fi
+}
+
+while true; do
+  handle_modem m1 MODEM1 eth1 "$COOLDOWN_M1"
+  handle_modem m2 MODEM2 wwan0 "$COOLDOWN_M2"
+  sleep "$DELAY_LOOP"
+done
