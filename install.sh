@@ -1,8 +1,4 @@
 #!/bin/sh
-# Auto IP Hunter Installer / Uninstaller (Interactive)
-# For OpenWRT
-# Author: ais sia
-
 set -e
 
 BIN_DIR="/usr/bin"
