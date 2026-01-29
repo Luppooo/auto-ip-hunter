@@ -1,0 +1,21 @@
+#!/bin/sh /etc/rc.common
+START=99
+
+CLASH_API="127.0.0.1:9090"
+CLASH_SECRET="xidz"
+
+start() {
+  echo "⏳ Waiting for Clash API..."
+
+  for i in $(seq 1 120); do
+    if curl -s -H "Authorization: Bearer $CLASH_SECRET" \
+      http://$CLASH_API/providers/proxies >/dev/null 2>&1; then
+      echo "✅ Clash API ready"
+      break
+    fi
+    sleep 1
+  done
+
+  echo "🚀 Starting auto-ip-iphunter"
+  /usr/bin/auto-ip-iphunter &
+}
