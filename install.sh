@@ -31,6 +31,7 @@ confirm() {
   while true; do
     printf "%s [y/n]: " "$1"
     read yn
+    yn=$(echo "$yn" | tr -d '\r' | tr -d ' ')
     case "$yn" in
       y|Y) return 0 ;;
       n|N) return 1 ;;
@@ -41,7 +42,8 @@ confirm() {
 
 pause() {
   echo ""
-  read -p "Tekan ENTER untuk kembali ke menu..."
+  printf "Tekan ENTER untuk kembali ke menu..."
+  read dummy
 }
 
 # ================== UNINSTALL ==================
@@ -134,7 +136,10 @@ main_menu() {
     echo " 2) Uninstall"
     echo " 3) Exit"
     echo ""
-    read -p "Pilih menu [1-3]: " opt
+
+    printf "Pilih menu [1-3]: "
+    read opt
+    opt=$(echo "$opt" | tr -d '\r' | tr -d ' ')
 
     case "$opt" in
       1) do_install ;;
@@ -149,6 +154,9 @@ main_menu() {
 require_root
 
 case "$1" in
+  install)
+    do_install
+  ;;
   uninstall)
     do_uninstall
   ;;
